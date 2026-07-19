@@ -82,9 +82,20 @@ const Login = () => {
           </button>
         </form>
 
-        <p style={styles.demoHint}>
-          Demo: atharvanadkar2004@gmail.com / password123
-        </p>
+        <div style={styles.divider}>
+  <span style={styles.dividerText}>Don't have an account?</span>
+</div>
+
+<button
+  onClick={() => navigate('/signup')}
+  style={styles.signupButton}
+>
+  Create Account
+</button>
+
+<p style={styles.demoHint}>
+  Demo: atharvanadkar2004@gmail.com / password123
+</p>
       </div>
     </div>
   );
@@ -172,6 +183,29 @@ const styles = {
     fontSize: '13px',
     color: '#888',
   },
+  divider: {
+  marginTop: '24px',
+  textAlign: 'center',
+  borderTop: '1px solid #e2e8f0',
+  paddingTop: '24px',
+},
+dividerText: {
+  color: '#94a3b8',
+  fontSize: '14px',
+},
+signupButton: {
+  width: '100%',
+  padding: '12px',
+  background: 'transparent',
+  color: '#2563eb',
+  border: '1px solid #2563eb',
+  borderRadius: '8px',
+  fontSize: '16px',
+  fontWeight: '500',
+  cursor: 'pointer',
+  transition: 'background 0.2s',
+  marginTop: '12px',
+},
 };
 
 export default Login;

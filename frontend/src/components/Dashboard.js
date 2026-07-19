@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
-import { userAPI, aiAPI } from '../services/api';
+import axios from 'axios';
+
+const API_BASE_URL = 'https://cloudrisk-dashboard.onrender.com/api';
 
 const Dashboard = () => {
   const [users, setUsers] = useState([]);
@@ -13,7 +15,7 @@ const Dashboard = () => {
   const [seeding, setSeeding] = useState(false);
   const navigate = useNavigate();
 
-  // Check if user is logged in
+  // Check authentication
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -24,20 +26,43 @@ const Dashboard = () => {
   // Fetch users on load
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]);
+  }, []);
 
-  // ✅ NEW CODE - Paste this
-const fetchUsers = useCallback(async () => {
-  try {
-    const response = await userAPI.getAll();
-    setUsers(response.data);
-  } catch (error) {
-    if (error.response?.status === 401) {
-      navigate('/');
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_BASE_URL}/users`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      // Sample data as fallback
+      setUsers([
+        { username: 'johndoe', email: 'john@company.com', department: 'Finance', login_attempts: 15, last_location: 'Russia', mfa_enabled: false, issue_fixed: false, risk_level: 'HIGH' },
+        { username: 'janedoe', email: 'jane@company.com', department: 'HR', login_attempts: 2, last_location: 'USA', mfa_enabled: true, issue_fixed: true, risk_level: 'LOW' },
+        { username: 'bobsmith', email: 'bob@company.com', department: 'IT', login_attempts: 8, last_location: 'Nigeria', mfa_enabled: false, issue_fixed: false, risk_level: 'MEDIUM' },
+        { username: 'alicewonder', email: 'alice@company.com', department: 'Marketing', login_attempts: 1, last_location: 'USA', mfa_enabled: true, issue_fixed: true, risk_level: 'LOW' }
+      ]);
     }
-    console.error('Error fetching users:', error);
-  }
-}, [navigate]);
+  };
+
+  const handleSeedUsers = async () => {
+    setSeeding(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_BASE_URL}/seed-users`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('✅ Users seeded successfully!');
+      await fetchUsers();
+    } catch (error) {
+      alert('❌ Error seeding users.');
+      console.error('Seed error:', error);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const handleAISearch = async () => {
     if (!searchUser.trim()) {
@@ -49,20 +74,18 @@ const fetchUsers = useCallback(async () => {
     setAiResult(null);
 
     try {
-      const response = await aiAPI.analyze(searchUser);
-      setAiResult(response.data);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_BASE_URL}/analyze/${searchUser}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
-      // Refresh user list
-      await fetchUsers();
-
-      // Show alert based on risk level
+      setAiResult(response.data);
       const risk = response.data.risk_level;
       const emoji = risk === 'HIGH' ? '🚨' : risk === 'MEDIUM' ? '⚠️' : '✅';
       alert(`${emoji} Risk Analysis for ${searchUser}: ${risk}\n\n${response.data.reason}`);
+      
+      await fetchUsers();
     } catch (error) {
-      if (error.response?.status === 401) {
-        navigate('/');
-      }
       alert(error.response?.data?.error || 'Analysis failed. User not found.');
     } finally {
       setLoading(false);
@@ -70,93 +93,84 @@ const fetchUsers = useCallback(async () => {
   };
 
   const handleFixIssue = async (username) => {
-  try {
-    await aiAPI.fix(username);
-    alert(`✅ ${username} marked as fixed! Thank you email sent.`);
-    await fetchUsers();
-  } catch (error) {
-    if (error.response?.status === 401) {
-      navigate('/');
-    }
-    alert('Error marking as fixed.');
-  }
-};
-
-  const handleSeedUsers = async () => {
-    setSeeding(true);
     try {
-      const response = await userAPI.seed();
-      alert(`✅ ${response.data.message}`);
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_BASE_URL}/fix/${username}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert(`✅ ${username} marked as fixed! Thank you email sent.`);
       await fetchUsers();
     } catch (error) {
-      alert('Error seeding users.');
-    } finally {
-      setSeeding(false);
+      if (error.response?.status === 401) {
+        navigate('/');
+      }
+      alert('Error marking as fixed.');
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
     navigate('/');
   };
 
-  // AG-Grid Column Definitions
+  // Risk color renderer
+  const riskLevelRenderer = (params) => {
+    const value = params.value;
+    let bgColor, textColor;
+    
+    if (value === 'HIGH') {
+      bgColor = '#ffcccc';
+      textColor = '#cc0000';
+    } else if (value === 'MEDIUM') {
+      bgColor = '#fff3b0';
+      textColor = '#cc9900';
+    } else {
+      bgColor = '#ccffcc';
+      textColor = '#006600';
+    }
+    
+    return (
+      <span style={{
+        backgroundColor: bgColor,
+        color: textColor,
+        fontWeight: 'bold',
+        padding: '4px 12px',
+        borderRadius: '12px',
+        display: 'inline-block',
+        width: '100%',
+        textAlign: 'center'
+      }}>
+        {value}
+      </span>
+    );
+  };
+
   const columnDefs = [
-    { 
-      field: 'username', 
-      headerName: 'Username', 
-      width: 130,
-      pinned: 'left',
-    },
-    { 
-      field: 'department', 
-      headerName: 'Department', 
-      width: 140,
-      editable: true,
-    },
-    { 
-      field: 'login_attempts', 
-      headerName: 'Failed Logins', 
-      width: 140,
-      type: 'numericColumn',
-    },
-    { 
-      field: 'last_location', 
-      headerName: 'Location', 
-      width: 130,
-    },
+    { field: 'username', headerName: 'Username', width: 130 },
+    { field: 'department', headerName: 'Department', width: 140 },
+    { field: 'login_attempts', headerName: 'Failed Logins', width: 140 },
+    { field: 'last_location', headerName: 'Location', width: 130 },
     { 
       field: 'mfa_enabled', 
       headerName: 'MFA', 
       width: 100,
-      cellRenderer: (params) => params.value ? '✅' : '❌',
+      cellRenderer: (params) => params.value ? '✅' : '❌'
     },
     { 
       field: 'risk_level', 
       headerName: 'Risk Level', 
-      width: 130,
-      cellStyle: (params) => {
-        const value = params.value;
-        if (value === 'HIGH') {
-          return { backgroundColor: '#ffcccc', fontWeight: 'bold', color: '#cc0000' };
-        } else if (value === 'MEDIUM') {
-          return { backgroundColor: '#fff3b0', fontWeight: 'bold', color: '#cc9900' };
-        } else {
-          return { backgroundColor: '#ccffcc', fontWeight: 'bold', color: '#006600' };
-        }
-      },
+      width: 150,
+      cellRenderer: riskLevelRenderer
     },
     {
       field: 'issue_fixed',
       headerName: 'Status',
       width: 120,
-      cellRenderer: (params) => params.value ? '✅ Fixed' : '⚠️ Pending',
+      cellRenderer: (params) => params.value ? '✅ Fixed' : '⚠️ Pending'
     },
     {
       headerName: 'Actions',
       width: 160,
-      pinned: 'right',
       cellRenderer: (params) => (
         <button
           onClick={() => handleFixIssue(params.data.username)}
@@ -175,282 +189,118 @@ const fetchUsers = useCallback(async () => {
           {params.data.issue_fixed ? '✅ Fixed' : 'Mark as Fixed'}
         </button>
       ),
-    },
+    }
   ];
 
-  const defaultColDef = {
-    sortable: true,
-    filter: true,
-    resizable: true,
-  };
-
   return (
-    <div style={styles.container}>
+    <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
-      <header style={styles.header}>
-        <div style={styles.headerLeft}>
-          <h1 style={styles.headerTitle}>🛡️ CloudRisk AI</h1>
-          <span style={styles.headerBadge}>Risk Assessment Dashboard</span>
-        </div>
-        <div style={styles.headerRight}>
-          <button onClick={handleSeedUsers} disabled={seeding} style={styles.seedButton}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <h1 style={{ margin: 0 }}>🛡️ CloudRisk AI</h1>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={handleSeedUsers}
+            disabled={seeding}
+            style={{
+              padding: '10px 20px',
+              background: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              opacity: seeding ? 0.7 : 1
+            }}
+          >
             {seeding ? '⏳ Seeding...' : '🌱 Seed Users'}
           </button>
-          <button onClick={handleLogout} style={styles.logoutButton}>
+          <button 
+            onClick={handleLogout}
+            style={{
+              padding: '10px 20px',
+              background: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
             Logout
           </button>
         </div>
-      </header>
+      </div>
 
       {/* AI Search Section */}
-      <div style={styles.aiSection}>
-        <div style={styles.aiHeader}>
-          <span style={styles.aiIcon}>🤖</span>
-          <div>
-            <h2 style={styles.aiTitle}>AI Risk Predictor</h2>
-            <p style={styles.aiSubtitle}>Enter a username to analyze security risk using AI</p>
-          </div>
-        </div>
-        <div style={styles.searchContainer}>
+      <div style={{ 
+        background: '#f8f9fa', 
+        padding: '24px', 
+        borderRadius: '10px', 
+        marginBottom: '24px',
+        border: '1px solid #dee2e6'
+      }}>
+        <h3 style={{ marginTop: 0 }}>🤖 AI Risk Predictor</h3>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             type="text"
             placeholder="Enter username (e.g., johndoe)"
             value={searchUser}
             onChange={(e) => setSearchUser(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleAISearch()}
-            style={styles.searchInput}
+            style={{
+              padding: '10px 16px',
+              width: '300px',
+              border: '1px solid #ced4da',
+              borderRadius: '5px',
+              fontSize: '16px'
+            }}
           />
           <button
             onClick={handleAISearch}
             disabled={loading}
             style={{
-              ...styles.searchButton,
-              opacity: loading ? 0.7 : 1,
+              padding: '10px 30px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              fontSize: '16px',
+              cursor: 'pointer',
+              opacity: loading ? 0.7 : 1
             }}
           >
             {loading ? '🔍 Analyzing...' : '🔍 Analyze'}
           </button>
         </div>
         {aiResult && (
-          <div style={styles.aiResult}>
-            <span style={styles.aiResultLabel}>Last Analysis:</span>
-            <span
-              style={{
-                ...styles.aiResultBadge,
-                background:
-                  aiResult.risk_level === 'HIGH'
-                    ? '#dc3545'
-                    : aiResult.risk_level === 'MEDIUM'
-                    ? '#ffc107'
-                    : '#28a745',
-                color: aiResult.risk_level === 'MEDIUM' ? '#333' : 'white',
-              }}
-            >
+          <div style={{ marginTop: '15px', padding: '15px', background: 'white', borderRadius: '5px' }}>
+            <strong>Last Analysis for {aiResult.username}:</strong>{' '}
+            <span style={{
+              padding: '4px 12px',
+              borderRadius: '20px',
+              background: aiResult.risk_level === 'HIGH' ? '#dc3545' : 
+                         aiResult.risk_level === 'MEDIUM' ? '#ffc107' : '#28a745',
+              color: aiResult.risk_level === 'MEDIUM' ? '#333' : 'white',
+              fontWeight: 'bold'
+            }}>
               {aiResult.risk_level}
             </span>
-            <span style={styles.aiResultReason}>{aiResult.reason}</span>
+            <span style={{ marginLeft: '15px' }}>{aiResult.reason}</span>
           </div>
         )}
       </div>
 
       {/* AG-Grid Table */}
-      <div style={styles.tableContainer}>
-        <div style={styles.tableHeader}>
-          <h3 style={styles.tableTitle}>📋 User Database</h3>
-          <span style={styles.tableCount}>{users.length} users</span>
-        </div>
-        <div className="ag-theme-alpine" style={styles.table}>
-          <AgGridReact
-            rowData={users}
-            columnDefs={columnDefs}
-            defaultColDef={defaultColDef}
-            pagination={true}
-            paginationPageSize={10}
-            animateRows={true}
-            rowHeight={45}
-          />
-        </div>
+      <div className="ag-theme-alpine" style={{ height: '500px', width: '100%' }}>
+        <AgGridReact
+          rowData={users}
+          columnDefs={columnDefs}
+          pagination={true}
+          paginationPageSize={10}
+          defaultColDef={{ sortable: true, filter: true, resizable: true }}
+          animateRows={true}
+        />
       </div>
-
-      {/* Footer */}
-      <footer style={styles.footer}>
-        <p>© 2026 CloudRisk AI Security Dashboard | Built with React + AG-Grid</p>
-      </footer>
     </div>
   );
-};
-
-// Styles
-const styles = {
-  container: {
-    minHeight: '100vh',
-    background: '#f8f9fa',
-    padding: '20px',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    background: 'white',
-    padding: '16px 24px',
-    borderRadius: '12px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-    marginBottom: '24px',
-  },
-  headerLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-  },
-  headerTitle: {
-    fontSize: '22px',
-    fontWeight: 'bold',
-    margin: 0,
-    color: '#333',
-  },
-  headerBadge: {
-    background: '#e9ecef',
-    padding: '4px 12px',
-    borderRadius: '20px',
-    fontSize: '12px',
-    color: '#666',
-  },
-  headerRight: {
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'center',
-  },
-  seedButton: {
-    padding: '8px 20px',
-    background: '#28a745',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-  },
-  logoutButton: {
-    padding: '8px 20px',
-    background: '#dc3545',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-  },
-  aiSection: {
-    background: 'white',
-    padding: '24px',
-    borderRadius: '12px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-    marginBottom: '24px',
-  },
-  aiHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    marginBottom: '16px',
-  },
-  aiIcon: {
-    fontSize: '32px',
-  },
-  aiTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    margin: 0,
-    color: '#333',
-  },
-  aiSubtitle: {
-    fontSize: '14px',
-    color: '#666',
-    margin: '4px 0 0 0',
-  },
-  searchContainer: {
-    display: 'flex',
-    gap: '12px',
-  },
-  searchInput: {
-    flex: 1,
-    padding: '12px 16px',
-    border: '2px solid #dee2e6',
-    borderRadius: '8px',
-    fontSize: '16px',
-    outline: 'none',
-    transition: 'border-color 0.3s',
-  },
-  searchButton: {
-    padding: '12px 32px',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-  },
-  aiResult: {
-    marginTop: '16px',
-    padding: '16px',
-    background: '#f8f9fa',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    flexWrap: 'wrap',
-  },
-  aiResultLabel: {
-    fontWeight: '500',
-    color: '#666',
-  },
-  aiResultBadge: {
-    padding: '4px 16px',
-    borderRadius: '20px',
-    fontWeight: 'bold',
-    fontSize: '14px',
-  },
-  aiResultReason: {
-    color: '#555',
-    fontSize: '14px',
-  },
-  tableContainer: {
-    background: 'white',
-    padding: '24px',
-    borderRadius: '12px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-  },
-  tableHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '16px',
-  },
-  tableTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    margin: 0,
-    color: '#333',
-  },
-  tableCount: {
-    fontSize: '14px',
-    color: '#666',
-    background: '#e9ecef',
-    padding: '4px 12px',
-    borderRadius: '20px',
-  },
-  table: {
-    height: '450px',
-    width: '100%',
-  },
-  footer: {
-    textAlign: 'center',
-    padding: '20px',
-    color: '#888',
-    fontSize: '13px',
-    marginTop: '20px',
-  },
 };
 
 export default Dashboard;

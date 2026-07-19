@@ -83,6 +83,85 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// --- SIGNUP ENDPOINT ---
+app.post('/api/signup', async (req, res) => {
+  const { username, email, password } = req.body;
+
+  // Validate input
+  if (!username || !email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: 'All fields are required'
+    });
+  }
+
+  // Validate password length
+  if (password.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'Password must be at least 6 characters'
+    });
+  }
+
+  try {
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }]
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User with this email or username already exists'
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user
+    const newUser = new User({
+      username: username.toLowerCase(),
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      department: 'New User',
+      login_attempts: 0,
+      last_location: 'Unknown',
+      mfa_enabled: false,
+      issue_fixed: true,
+      risk_level: 'LOW',
+    });
+
+    await newUser.save();
+
+    // Generate JWT token (auto-login)
+    const token = jwt.sign(
+      { id: newUser._id, email: newUser.email, username: newUser.username },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Account created successfully!',
+      token,
+      user: {
+        id: newUser._id,
+        username: newUser.username,
+        email: newUser.email,
+        department: newUser.department
+      }
+    });
+
+  } catch (error) {
+    console.error('Signup error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during signup'
+    });
+  }
+});
+
 // --- SEED DUMMY USERS (For testing) ---
 app.post('/api/seed-users', async (req, res) => {
   console.log('🌱 Seeding dummy users...');
