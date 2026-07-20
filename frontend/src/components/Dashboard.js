@@ -41,7 +41,6 @@ const Dashboard = () => {
       setUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
-      // Sample data as fallback
       setUsers([
         { username: 'johndoe', email: 'john@company.com', department: 'Finance', login_attempts: 15, last_location: 'Russia', mfa_enabled: false, issue_fixed: false, risk_level: 'HIGH' },
         { username: 'janedoe', email: 'jane@company.com', department: 'HR', login_attempts: 2, last_location: 'USA', mfa_enabled: true, issue_fixed: true, risk_level: 'LOW' },
@@ -198,39 +197,24 @@ const Dashboard = () => {
   ];
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="dashboard-container" style={styles.container}>
       {/* Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '24px',
-        padding: '16px 24px',
-        background: 'white',
-        borderRadius: '12px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-      }}>
+      <div className="dashboard-header" style={styles.header}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '24px' }}>🛡️ CloudRisk AI</h1>
-          <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748b' }}>
-            Security Risk Assessment
-          </p>
+          <h1 style={styles.headerTitle}>🛡️ CloudRisk AI</h1>
+          <p style={styles.headerSubtitle}>Security Risk Assessment</p>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div className="dashboard-header-actions" style={styles.headerActions}>
           {/* Role Badge */}
-          <span style={{
+          <span className="role-badge" style={{
+            ...styles.roleBadge,
             background: isAdmin ? '#2563eb' : '#6b7280',
-            color: 'white',
-            padding: '4px 14px',
-            borderRadius: '20px',
-            fontSize: '12px',
-            fontWeight: '500'
           }}>
             {isAdmin ? '👑 Admin' : '👤 User'}
           </span>
           
-          <span style={{ fontSize: '14px', color: '#64748b' }}>
+          <span className="user-greeting" style={styles.userGreeting}>
             Welcome, {user?.username || 'User'}
           </span>
 
@@ -240,14 +224,9 @@ const Dashboard = () => {
               onClick={handleSeedUsers}
               disabled={seeding}
               style={{
-                padding: '8px 20px',
-                background: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
+                ...styles.seedButton,
                 opacity: seeding ? 0.7 : 1,
-                fontSize: '14px'
+                cursor: seeding ? 'not-allowed' : 'pointer',
               }}
             >
               {seeding ? '⏳ Seeding...' : '🌱 Seed Users'}
@@ -256,15 +235,8 @@ const Dashboard = () => {
           
           <button 
             onClick={handleLogout}
-            style={{
-              padding: '8px 20px',
-              background: '#dc3545',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
+            className="logout-button"
+            style={styles.logoutButton}
           >
             Logout
           </button>
@@ -272,93 +244,195 @@ const Dashboard = () => {
       </div>
 
       {/* AI Search Section */}
-      <div style={{ 
-        background: '#f8f9fa', 
-        padding: '24px', 
-        borderRadius: '10px', 
-        marginBottom: '24px',
-        border: '1px solid #dee2e6'
-      }}>
-        <h3 style={{ marginTop: 0 }}>🤖 AI Risk Predictor</h3>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="search-section" style={styles.searchSection}>
+        <h3 style={styles.searchTitle}>🤖 AI Risk Predictor</h3>
+        <div className="search-container" style={styles.searchContainer}>
           <input
             type="text"
             placeholder="Enter username (e.g., johndoe)"
             value={searchUser}
             onChange={(e) => setSearchUser(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleAISearch()}
-            style={{
-              padding: '10px 16px',
-              width: '300px',
-              border: '1px solid #ced4da',
-              borderRadius: '5px',
-              fontSize: '16px'
-            }}
+            style={styles.searchInput}
           />
           <button
             onClick={handleAISearch}
             disabled={loading}
             style={{
-              padding: '10px 30px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              fontSize: '16px',
-              cursor: 'pointer',
-              opacity: loading ? 0.7 : 1
+              ...styles.searchButton,
+              opacity: loading ? 0.7 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer',
             }}
           >
             {loading ? '🔍 Analyzing...' : '🔍 Analyze'}
           </button>
         </div>
         {aiResult && (
-          <div style={{ marginTop: '15px', padding: '15px', background: 'white', borderRadius: '5px' }}>
+          <div className="ai-result" style={styles.aiResult}>
             <strong>Last Analysis for {aiResult.username}:</strong>{' '}
-            <span style={{
-              padding: '4px 12px',
-              borderRadius: '20px',
+            <span className="ai-result-badge" style={{
+              ...styles.aiResultBadge,
               background: aiResult.risk_level === 'HIGH' ? '#dc3545' : 
                          aiResult.risk_level === 'MEDIUM' ? '#ffc107' : '#28a745',
               color: aiResult.risk_level === 'MEDIUM' ? '#333' : 'white',
-              fontWeight: 'bold'
             }}>
               {aiResult.risk_level}
             </span>
-            <span style={{ marginLeft: '15px' }}>{aiResult.reason}</span>
+            <span style={styles.aiResultReason}>{aiResult.reason}</span>
           </div>
         )}
       </div>
 
       {/* Role-based info message for regular users */}
       {!isAdmin && users.length > 0 && (
-        <div style={{
-          background: '#e8f4fd',
-          border: '1px solid #b8d4e8',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          marginBottom: '16px',
-          color: '#1a4b6d',
-          fontSize: '14px'
-        }}>
+        <div className="info-message" style={styles.infoMessage}>
           ℹ️ You are viewing your own data only.
           <span style={{ fontWeight: '500' }}> {user?.username}</span>
         </div>
       )}
 
       {/* AG-Grid Table */}
-      <div className="ag-theme-alpine" style={{ height: '500px', width: '100%' }}>
+      <div className="ag-theme-alpine" style={styles.tableContainer}>
         <AgGridReact
           rowData={users}
           columnDefs={columnDefs}
           pagination={true}
           paginationPageSize={10}
-          defaultColDef={{ sortable: true, filter: true, resizable: true }}
+          defaultColDef={{ 
+            sortable: true, 
+            filter: true, 
+            resizable: true,
+            flex: 1,
+            minWidth: 80,
+          }}
           animateRows={true}
         />
       </div>
     </div>
   );
+};
+
+// ========== STYLES ==========
+const styles = {
+  container: {
+    padding: '20px',
+    maxWidth: '1400px',
+    margin: '0 auto',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '24px',
+    padding: '16px 24px',
+    background: 'white',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  },
+  headerTitle: {
+    margin: 0,
+    fontSize: '24px',
+  },
+  headerSubtitle: {
+    margin: '4px 0 0',
+    fontSize: '14px',
+    color: '#64748b',
+  },
+  headerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+  },
+  roleBadge: {
+    color: 'white',
+    padding: '4px 14px',
+    borderRadius: '20px',
+    fontSize: '12px',
+    fontWeight: '500',
+  },
+  userGreeting: {
+    fontSize: '14px',
+    color: '#64748b',
+  },
+  seedButton: {
+    padding: '8px 20px',
+    background: '#28a745',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+  },
+  logoutButton: {
+    padding: '8px 20px',
+    background: '#dc3545',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+  },
+  searchSection: {
+    background: '#f8f9fa',
+    padding: '24px',
+    borderRadius: '10px',
+    marginBottom: '24px',
+    border: '1px solid #dee2e6',
+  },
+  searchTitle: {
+    marginTop: 0,
+  },
+  searchContainer: {
+    display: 'flex',
+    gap: '10px',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  searchInput: {
+    padding: '10px 16px',
+    width: '300px',
+    border: '1px solid #ced4da',
+    borderRadius: '5px',
+    fontSize: '16px',
+  },
+  searchButton: {
+    padding: '10px 30px',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '5px',
+    fontSize: '16px',
+  },
+  aiResult: {
+    marginTop: '15px',
+    padding: '15px',
+    background: 'white',
+    borderRadius: '5px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+  aiResultBadge: {
+    padding: '4px 12px',
+    borderRadius: '20px',
+    fontWeight: 'bold',
+  },
+  aiResultReason: {
+    marginLeft: '5px',
+  },
+  infoMessage: {
+    background: '#e8f4fd',
+    border: '1px solid #b8d4e8',
+    borderRadius: '8px',
+    padding: '12px 16px',
+    marginBottom: '16px',
+    color: '#1a4b6d',
+    fontSize: '14px',
+  },
+  tableContainer: {
+    height: '500px',
+    width: '100%',
+  },
 };
 
 export default Dashboard;

@@ -64,7 +64,6 @@ const Signup = () => {
       });
 
       if (response.data.success) {
-        // Auto-login: save token and redirect
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         navigate('/dashboard');
@@ -77,8 +76,8 @@ const Signup = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
+    <div className="signup-container" style={styles.container}>
+      <div className="signup-card" style={styles.card}>
         <div style={styles.logoSection}>
           <h1 style={styles.title}>CloudRisk AI</h1>
           <p style={styles.subtitle}>Create your account</p>
@@ -168,6 +167,7 @@ const Signup = () => {
   );
 };
 
+// ========== STYLES ==========
 const styles = {
   container: {
     display: 'flex',
@@ -244,7 +244,6 @@ const styles = {
     borderRadius: '8px',
     fontSize: '16px',
     fontWeight: '600',
-    transition: 'background 0.2s',
     marginTop: '8px',
   },
   divider: {

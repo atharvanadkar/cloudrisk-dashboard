@@ -18,11 +18,8 @@ const Login = () => {
       const response = await authAPI.login(email, password);
       
       if (response.data.success) {
-        // Save token and user data
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
-        
-        // Redirect to dashboard
         navigate('/dashboard');
       }
     } catch (err) {
@@ -33,8 +30,8 @@ const Login = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
+    <div className="login-container" style={styles.container}>
+      <div className="login-card" style={styles.card}>
         <h1 style={styles.title}>🔐 CloudRisk AI</h1>
         <p style={styles.subtitle}>Security Risk Assessment Dashboard</p>
 
@@ -83,25 +80,25 @@ const Login = () => {
         </form>
 
         <div style={styles.divider}>
-  <span style={styles.dividerText}>Don't have an account?</span>
-</div>
+          <span style={styles.dividerText}>Don't have an account?</span>
+        </div>
 
-<button
-  onClick={() => navigate('/signup')}
-  style={styles.signupButton}
->
-  Create Account
-</button>
+        <button
+          onClick={() => navigate('/signup')}
+          style={styles.signupButton}
+        >
+          Create Account
+        </button>
 
-<p style={styles.demoHint}>
-  Demo: atharvanadkar2004@gmail.com / password123
-</p>
+        <p style={styles.demoHint}>
+          Demo: atharvanadkar2004@gmail.com / password123
+        </p>
       </div>
     </div>
   );
 };
 
-// Styles
+// ========== STYLES ==========
 const styles = {
   container: {
     display: 'flex',
@@ -174,7 +171,6 @@ const styles = {
     borderRadius: '8px',
     fontSize: '18px',
     fontWeight: '600',
-    transition: 'transform 0.2s',
     marginTop: '8px',
   },
   demoHint: {
@@ -184,28 +180,28 @@ const styles = {
     color: '#888',
   },
   divider: {
-  marginTop: '24px',
-  textAlign: 'center',
-  borderTop: '1px solid #e2e8f0',
-  paddingTop: '24px',
-},
-dividerText: {
-  color: '#94a3b8',
-  fontSize: '14px',
-},
-signupButton: {
-  width: '100%',
-  padding: '12px',
-  background: 'transparent',
-  color: '#2563eb',
-  border: '1px solid #2563eb',
-  borderRadius: '8px',
-  fontSize: '16px',
-  fontWeight: '500',
-  cursor: 'pointer',
-  transition: 'background 0.2s',
-  marginTop: '12px',
-},
+    marginTop: '24px',
+    textAlign: 'center',
+    borderTop: '1px solid #e2e8f0',
+    paddingTop: '24px',
+  },
+  dividerText: {
+    color: '#94a3b8',
+    fontSize: '14px',
+  },
+  signupButton: {
+    width: '100%',
+    padding: '12px',
+    background: 'transparent',
+    color: '#2563eb',
+    border: '1px solid #2563eb',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'background 0.2s',
+    marginTop: '12px',
+  },
 };
 
 export default Login;
