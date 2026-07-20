@@ -15,11 +15,15 @@ const Dashboard = () => {
   const [seeding, setSeeding] = useState(false);
   const navigate = useNavigate();
 
+  // ========== GET USER ROLE ==========
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isAdmin = user.role === 'admin';
+
   // Check authentication
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      navigate('/');
+      navigate('/login');
     }
   }, [navigate]);
 
@@ -102,7 +106,7 @@ const Dashboard = () => {
       await fetchUsers();
     } catch (error) {
       if (error.response?.status === 401) {
-        navigate('/');
+        navigate('/login');
       }
       alert('Error marking as fixed.');
     }
@@ -110,7 +114,8 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    navigate('/');
+    localStorage.removeItem('user');
+    navigate('/login');
   };
 
   // Risk color renderer
@@ -195,33 +200,70 @@ const Dashboard = () => {
   return (
     <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h1 style={{ margin: 0 }}>🛡️ CloudRisk AI</h1>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button 
-            onClick={handleSeedUsers}
-            disabled={seeding}
-            style={{
-              padding: '10px 20px',
-              background: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              opacity: seeding ? 0.7 : 1
-            }}
-          >
-            {seeding ? '⏳ Seeding...' : '🌱 Seed Users'}
-          </button>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '24px',
+        padding: '16px 24px',
+        background: 'white',
+        borderRadius: '12px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+      }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: '24px' }}>🛡️ CloudRisk AI</h1>
+          <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748b' }}>
+            Security Risk Assessment
+          </p>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {/* Role Badge */}
+          <span style={{
+            background: isAdmin ? '#2563eb' : '#6b7280',
+            color: 'white',
+            padding: '4px 14px',
+            borderRadius: '20px',
+            fontSize: '12px',
+            fontWeight: '500'
+          }}>
+            {isAdmin ? '👑 Admin' : '👤 User'}
+          </span>
+          
+          <span style={{ fontSize: '14px', color: '#64748b' }}>
+            Welcome, {user?.username || 'User'}
+          </span>
+
+          {/* Seed Users - Only for Admins */}
+          {isAdmin && (
+            <button 
+              onClick={handleSeedUsers}
+              disabled={seeding}
+              style={{
+                padding: '8px 20px',
+                background: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                opacity: seeding ? 0.7 : 1,
+                fontSize: '14px'
+              }}
+            >
+              {seeding ? '⏳ Seeding...' : '🌱 Seed Users'}
+            </button>
+          )}
+          
           <button 
             onClick={handleLogout}
             style={{
-              padding: '10px 20px',
+              padding: '8px 20px',
               background: '#dc3545',
               color: 'white',
               border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer'
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px'
             }}
           >
             Logout
@@ -287,6 +329,22 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Role-based info message for regular users */}
+      {!isAdmin && users.length > 0 && (
+        <div style={{
+          background: '#e8f4fd',
+          border: '1px solid #b8d4e8',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          marginBottom: '16px',
+          color: '#1a4b6d',
+          fontSize: '14px'
+        }}>
+          ℹ️ You are viewing your own data only.
+          <span style={{ fontWeight: '500' }}> {user?.username}</span>
+        </div>
+      )}
 
       {/* AG-Grid Table */}
       <div className="ag-theme-alpine" style={{ height: '500px', width: '100%' }}>
