@@ -27,6 +27,14 @@ const Signup = () => {
     setLoading(true);
     setError('');
 
+    // ========== EMAIL VALIDATION ==========
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address (e.g., user@domain.com)');
+      setLoading(false);
+      return;
+    }
+
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');

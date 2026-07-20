@@ -59,7 +59,7 @@ async function sendHighRiskEmail(toEmail, username, reason) {
             </ul>
             
             <p style="text-align: center; margin: 20px 0;">
-              <a href="#" class="button">Go to Dashboard</a>
+              <a href="https://cloudrisk-dashboard.vercel.app/login" class="button">Go to Dashboard</a>
             </p>
             
             <div class="footer">
@@ -77,7 +77,6 @@ async function sendHighRiskEmail(toEmail, username, reason) {
     
   } catch (error) {
     console.log('❌ Failed to send high risk email:', error.message);
-    // Don't fail the whole request just because email failed
     return { success: false, message: 'Email failed' };
   }
 }
