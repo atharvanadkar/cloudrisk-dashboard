@@ -196,6 +196,18 @@ app.post('/api/seed-users', async (req, res) => {
     
     const dummyUsers = [
       { 
+        username: 'admin', 
+        email: 'admin.cloudrisk@gmail.com', 
+        password: hashedPassword, 
+        department: 'Administration', 
+        login_attempts: 0, 
+        last_location: 'Unknown', 
+        mfa_enabled: true, 
+        issue_fixed: true,
+        risk_level: 'LOW',
+        role: 'admin'  // ← IMPORTANT: Set role to admin
+      },
+      { 
         username: 'johndoe', 
         email: 'atharvanadkar2004@gmail.com', 
         password: hashedPassword, 
